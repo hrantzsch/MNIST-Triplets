@@ -1,0 +1,3 @@
+scipy
+pillow
+-e git+https://github.com/hrantzsch/TripletEmbedding.git#egg=tripletembedding 
