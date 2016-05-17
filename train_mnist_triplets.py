@@ -4,21 +4,16 @@ Very much tailored to mnist...
 """
 
 import numpy as np
-import pickle
-import argparse
 
 import chainer
-from chainer import computational_graph as c
 from chainer import cuda
-from chainer import links as L
-from chainer import serializers
 from chainer import optimizers
 
 from tripletembedding.predictors import TripletNet
+from tripletembedding.aux import Logger, load_snapshot
 
 from aux import helpers
 from aux.mnist_loader import MnistLoader
-from aux.logger import Logger, load_snapshot
 from models.mnist_dnn import MnistDnn
 
 
@@ -64,10 +59,12 @@ for _ in range(1, args.epoch + 1):
 
     # training
     for anchor in train:
-        x_data = dl.get_batch(args.batchsize, anchor)
+        x_data = dl.get_batch(args.batchsize)
         x = chainer.Variable(x_data)
         optimizer.update(model, x, margin)
-        logger.log_iteration("train", float(model.loss.data), float(model.accuracy), float(model.dist))
+        logger.log_iteration("train",
+                             float(model.loss.data), float(model.accuracy),
+                             float(model.mean_diff), float(model.max_diff))
 
         if not graph_generated:
             helpers.write_graph(model.loss)
@@ -80,10 +77,14 @@ for _ in range(1, args.epoch + 1):
     if optimizer.epoch % 5 == 0:
         for anchor in test:
             for _ in range(3):
-                x_data = dl.get_batch(args.batchsize, anchor, train=False)
+                x_data = dl.get_batch(args.batchsize, train=False)
                 x = chainer.Variable(x_data)
                 loss = model(x, margin)
-                logger.log_iteration("test", float(model.loss.data), float(model.accuracy), float(model.dist))
+                logger.log_iteration("test",
+                                     float(model.loss.data),
+                                     float(model.accuracy),
+                                     float(model.mean_diff),
+                                     float(model.max_diff))
         logger.log_mean("test")
 
     if optimizer.epoch % args.lrinterval == 0 and optimizer.lr > 0.0000005:

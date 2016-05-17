@@ -1,7 +1,6 @@
 """Help loading data from mnist pkl files.
 Completely tailored to my locally generated files..."""
 import os
-import pickle
 import numpy as np
 from scipy.misc import imread
 
