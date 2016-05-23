@@ -15,6 +15,7 @@ from tripletembedding.aux import Logger, load_snapshot
 from aux import helpers
 from aux.mnist_loader import MnistLoader
 from models.mnist_dnn import MnistDnn
+from models.new_cnn import NewCnn
 
 
 args = helpers.get_args()
@@ -24,7 +25,8 @@ if args.gpu >= 0:
 xp = cuda.cupy if args.gpu >= 0 else np
 
 dl = MnistLoader(xp, args.data)
-model = TripletNet(MnistDnn)
+# model = TripletNet(MnistDnn)
+model = TripletNet(NewCnn)
 # if args.initmodel:
 #     print("loading pretrained mnist dnn")
 #     pretrained = L.Classifier(MnistWithLinear())
@@ -54,11 +56,13 @@ for _ in range(1, args.epoch + 1):
     np.random.shuffle(train)
     np.random.shuffle(test)
 
-    margin = 1 + optimizer.epoch ** 2 * 0.001
+    margin = 1 + optimizer.epoch ** 2 * 0.0005
+    # margin = 1
     print('margin: {:.3}'.format(float(margin)))
 
     # training
     for anchor in train:
+        model.clean()
         x_data = dl.get_batch(args.batchsize)
         x = chainer.Variable(x_data)
         optimizer.update(model, x, margin)
@@ -78,7 +82,7 @@ for _ in range(1, args.epoch + 1):
         for anchor in test:
             for _ in range(3):
                 x_data = dl.get_batch(args.batchsize, train=False)
-                x = chainer.Variable(x_data)
+                x = chainer.Variable(x_data, volatile=True)
                 loss = model(x, margin)
                 logger.log_iteration("test",
                                      float(model.loss.data),
